@@ -2,7 +2,9 @@ __pycache__
 .env
 .history
 .hypothesis/
+node_modules/
 build/
 reports/
 .DS_Store
+package-lock.json
 *swp
