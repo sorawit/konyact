@@ -4,13 +4,16 @@ pragma solidity 0.8.9;
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
 
 import "./Kaya.sol";
+import "../interfaces/IKayaCenter.sol";
 
 struct KayaGame {
   uint256 value;
 }
 
-contract KayaCenter is Initializable {
+contract KayaCenter is Initializable, IKayaCenter {
   event Deposit(address indexed user, address indexed game, uint256 value);
+  event Withdraw(address indexed user, address indexed game, uint256 value);
+  event Reward(address indexed game, uint256 value);
 
   Kaya public kaya;
   address public gov;
@@ -82,7 +85,7 @@ contract KayaCenter is Initializable {
     // TODO
   }
 
-  function reward(address game, uint256 value) external {
+  function notifyReward(uint256 value) external {
     // TODO
   }
 

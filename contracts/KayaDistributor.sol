@@ -1,27 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/token/ERC20/IERC20.sol";
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
 
+import "./WithGovernor.sol";
+import "../interfaces/IKaya.sol";
 import "../interfaces/IKayaGame.sol";
 
-interface ISoKaya {
-  function kaya() external view returns (IERC20);
-}
-
-contract KayaDistributor is Initializable {
+contract KayaDistributor is Initializable, WithGovernor {
+  IKaya public kaya;
   address public soKaya;
-  IERC20 public kaya;
 
   uint256 public accKayaPerPower;
   uint256 public totalPower;
 
+  uint256 public inflation;
+  uint256 public lastTick;
+
   mapping(address => uint256) public powers;
   mapping(address => uint256) public prevKayaPerPowers;
 
-  function initialize(IERC20 _kaya) external initializer {
+  function initialize(IKaya _kaya, address _gov) external initializer {
     kaya = _kaya;
+    initialize__WithGovernor(_gov);
   }
 
   function setSoKaya() external {
@@ -29,14 +30,15 @@ contract KayaDistributor is Initializable {
     soKaya = msg.sender;
   }
 
-  function inject(uint256 value) external {
-    require(totalPower > 1e18, "!power");
-    require(kaya.transferFrom(msg.sender, address(this), value));
-    accKayaPerPower += (value * 1e12) / totalPower;
+  function setInflation(uint256 _inflation) external onlyGov {
+    require(_inflation <= 1e18, "!inflation");
+    tick();
+    inflation = _inflation;
   }
 
   function increasePower(address game, uint256 power) external {
     require(msg.sender == soKaya, "!SoKaya");
+    tick();
     flush(game);
     totalPower += power;
     powers[game] += power;
@@ -44,6 +46,7 @@ contract KayaDistributor is Initializable {
 
   function decreasePower(address game, uint256 power) external {
     require(msg.sender == soKaya, "!SoKaya");
+    tick();
     flush(game);
     totalPower -= power;
     powers[game] -= power;
@@ -56,10 +59,21 @@ contract KayaDistributor is Initializable {
   ) external {
     require(msg.sender == soKaya, "!SoKaya");
     require(src != dst, "!transfer");
+    tick();
     flush(src);
     flush(dst);
     powers[src] -= power;
     powers[dst] += power;
+  }
+
+  function tick() public {
+    uint256 timePast = block.timestamp - lastTick;
+    lastTick = block.timestamp;
+    if (timePast > 0 && inflation > 0 && totalPower > 1e18) {
+      uint256 value = (kaya.totalSupply() * inflation * timePast) / 1e18 / 365 days;
+      kaya.mint(address(this), value);
+      accKayaPerPower += (value * 1e12) / totalPower;
+    }
   }
 
   function flush(address game) public {
