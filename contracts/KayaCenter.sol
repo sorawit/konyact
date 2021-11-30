@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
+
+import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
 
 import "./Kaya.sol";
 
@@ -6,15 +9,42 @@ struct KayaGame {
   uint256 value;
 }
 
-contract KayaCenter {
+contract KayaCenter is Initializable {
   event Deposit(address indexed user, address indexed game, uint256 value);
 
-  Kaya public immutable kaya;
+  Kaya public kaya;
+  address public gov;
+  address public pendingGov;
+  address public cfo;
 
   // mapping (address => KayaGame)
+  modifier onlyGov() {
+    require(msg.sender == gov, "!gov");
+    _;
+  }
 
-  constructor(Kaya _kaya) {
+  function initialize(Kaya _kaya, address _gov) external initializer {
     kaya = _kaya;
+    gov = _gov;
+    cfo = _gov;
+  }
+
+  function setPendingGov(address _pendingGov) external onlyGov {
+    pendingGov = _pendingGov;
+  }
+
+  function acceptGov() external {
+    require(msg.sender == pendingGov, "!pendingGov");
+    pendingGov = address(0);
+    gov = msg.sender;
+  }
+
+  function add() external {
+    // TODO
+  }
+
+  function isGame(address game) external view returns (bool) {
+    return false;
   }
 
   /// @dev Deposits KAYA into the given game.
@@ -48,10 +78,11 @@ contract KayaCenter {
     address to,
     uint256 value
   ) external {
+    require(msg.sender == cfo, "!cfo");
     // TODO
   }
 
-  function reward() external {
+  function reward(address game, uint256 value) external {
     // TODO
   }
 

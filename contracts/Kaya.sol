@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol";
