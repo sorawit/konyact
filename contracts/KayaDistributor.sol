@@ -4,6 +4,8 @@ pragma solidity 0.8.9;
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/token/ERC20/IERC20.sol";
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
 
+import "../interfaces/IKayaGame.sol";
+
 interface ISoKaya {
   function kaya() external view returns (IERC20);
 }
@@ -65,7 +67,7 @@ contract KayaDistributor is Initializable {
     prevKayaPerPowers[game] = accKayaPerPower;
     if (dist > 0) {
       kaya.approve(game, dist);
-      // TODO: reward
+      IKayaGame(game).reward(dist);
     }
   }
 }
