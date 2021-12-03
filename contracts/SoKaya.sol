@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/token/ERC20/ERC20.sol";
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/utils/math/Math.sol";
 
@@ -15,11 +14,18 @@ struct User {
   address game;
 }
 
-contract SoKaya is ERC20("", ""), Initializable {
+contract SoKaya is Initializable {
   IKaya public kaya;
   KayaDistributor public dist;
   KayaCenter public center;
+
   mapping(address => User) public users;
+  mapping(address => uint256) public balanceOf;
+
+  event Lock(address indexed user, uint256 value, uint8 commitment);
+  event Unlock(address indexed user, uint256 value);
+  event Vote(address indexed user, address indexed game);
+  event Transfer(address indexed from, address indexed to, uint256 value);
 
   /// @dev Initializes the SoKaya smart contract with the corrent Kaya Center.
   function initialize(KayaCenter _center, KayaDistributor _dist) external initializer {
@@ -30,12 +36,12 @@ contract SoKaya is ERC20("", ""), Initializable {
   }
 
   /// @dev Returns the name of soKAYA token.
-  function name() public view override returns (string memory) {
+  function name() public view returns (string memory) {
     return "Super Owner of KAYA";
   }
 
   /// @dev Returns the symbol of soKAYA token.
-  function symbol() public view override returns (string memory) {
+  function symbol() public view returns (string memory) {
     return "soKAYA";
   }
 
@@ -45,7 +51,7 @@ contract SoKaya is ERC20("", ""), Initializable {
   /// @param game (First lock only) The address to delegate soKAYA power to.
   function lock(
     uint256 value,
-    uint256 commitment,
+    uint8 commitment,
     address game
   ) external {
     _lock(value, commitment, game);
@@ -54,7 +60,7 @@ contract SoKaya is ERC20("", ""), Initializable {
   /// @dev Similar to lock functionality, but with an addtional permit call.
   function lockWithPermit(
     uint256 value,
-    uint256 commitment,
+    uint8 commitment,
     address game,
     uint256 deadline,
     uint8 v,
@@ -67,7 +73,7 @@ contract SoKaya is ERC20("", ""), Initializable {
 
   function _lock(
     uint256 value,
-    uint256 commitment,
+    uint8 commitment,
     address game
   ) internal {
     require(kaya.transferFrom(msg.sender, address(this), value));
@@ -75,14 +81,17 @@ contract SoKaya is ERC20("", ""), Initializable {
     if (user.game == address(0)) {
       require(game != address(0) && center.isGame(game), "!game");
       user.game = game;
+      emit Vote(msg.sender, game);
     } else {
       require(game == address(0) || game == user.game, "!game");
     }
     user.value += value;
     user.until += Math.max(user.until, block.timestamp + toLockTime(commitment));
     uint256 morePower = toLockMultiplier(commitment) * value;
-    dist.increasePower(user.game, morePower);
-    _mint(msg.sender, morePower);
+    dist.increasePower(user.game, msg.sender, morePower);
+    balanceOf[msg.sender] += morePower;
+    emit Lock(msg.sender, value, commitment);
+    emit Transfer(address(0), msg.sender, morePower);
   }
 
   /// @dev Unlocks KAYA tokens back to the sender. Must already pass lock period.
@@ -90,10 +99,12 @@ contract SoKaya is ERC20("", ""), Initializable {
   function unlock(uint256 value) external {
     User storage user = users[msg.sender];
     require(block.timestamp > user.until, "!until");
-    uint256 lessPower = Math.ceilDiv(balanceOf(msg.sender) * value, user.value);
+    uint256 lessPower = Math.ceilDiv(balanceOf[msg.sender] * value, user.value);
     user.value -= value;
-    dist.decreasePower(user.game, lessPower);
-    _burn(msg.sender, lessPower);
+    dist.decreasePower(user.game, msg.sender, lessPower);
+    balanceOf[msg.sender] -= lessPower;
+    emit Unlock(msg.sender, value);
+    emit Transfer(msg.sender, address(0), lessPower);
   }
 
   /// @dev Change voting power allocation to a new game.
@@ -101,14 +112,15 @@ contract SoKaya is ERC20("", ""), Initializable {
   function vote(address game) external {
     require(game != address(0) && center.isGame(game), "!game");
     User storage user = users[msg.sender];
-    uint256 power = balanceOf(msg.sender);
+    uint256 power = balanceOf[msg.sender];
     dist.transferPower(user.game, game, power);
     user.game = game;
+    emit Vote(msg.sender, game);
   }
 
   /// @dev Given the commitment enum value, returns the duration of lock time in seconds.
   /// @param commitment The commitment value to query.
-  function toLockTime(uint256 commitment) public pure returns (uint256) {
+  function toLockTime(uint8 commitment) public pure returns (uint256) {
     if (commitment == 0) return 7 days;
     if (commitment == 1) return 30 days;
     if (commitment == 2) return 182 days;
@@ -120,7 +132,7 @@ contract SoKaya is ERC20("", ""), Initializable {
 
   /// @dev Given the commitment enum value, returns the SoKaya multiplier.
   /// @param commitment The commitment value to query.
-  function toLockMultiplier(uint256 commitment) public pure returns (uint256) {
+  function toLockMultiplier(uint8 commitment) public pure returns (uint256) {
     if (commitment == 0) return 1;
     if (commitment == 1) return 2;
     if (commitment == 2) return 3;

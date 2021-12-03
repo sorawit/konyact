@@ -46,23 +46,37 @@ contract KayaDistributor is Initializable, WithGovernor {
 
   /// @dev Increases allocation power to the given game. Must be called by SoKAYA.
   /// @param game The game contract address to add power.
+  /// @param origin The origin staker for the game (get the same power).
   /// @param power The power to increase.
-  function increasePower(address game, uint256 power) external {
+  function increasePower(
+    address game,
+    address origin,
+    uint256 power
+  ) external {
     require(msg.sender == soKaya, "!SoKaya");
     tick();
     flush(game);
-    totalPower += power;
+    flush(origin);
+    totalPower += 2 * power;
+    powers[origin] += power;
     powers[game] += power;
   }
 
   /// @dev Decreases allocation power from the given game. Must be called by SoKAYA.
   /// @param game The game contract address to reduct power.
+  /// @param origin The origin staker for the game (get the same power).
   /// @param power The power to decrease.
-  function decreasePower(address game, uint256 power) external {
+  function decreasePower(
+    address game,
+    address origin,
+    uint256 power
+  ) external {
     require(msg.sender == soKaya, "!SoKaya");
     tick();
     flush(game);
-    totalPower -= power;
+    flush(origin);
+    totalPower -= 2 * power;
+    powers[origin] -= power;
     powers[game] -= power;
   }
 
@@ -95,13 +109,23 @@ contract KayaDistributor is Initializable, WithGovernor {
     }
   }
 
-  /// @dev Flushes KAYA rewards to a specific game.
-  /// @param game The game contract address to flush rewards to.
-  function flush(address game) public {
-    uint256 dist = ((accKayaPerPower - prevKayaPerPowers[game]) * powers[game]) / 1e12;
-    prevKayaPerPowers[game] = accKayaPerPower;
+  /// @dev Calculates the returns the pending rewards for a specific address.
+  /// @param to The address to query for pending rewards.
+  function pending(address to) public view returns (uint256) {
+    return ((accKayaPerPower - prevKayaPerPowers[to]) * powers[to]) / 1e12;
+  }
+
+  /// @dev Flushes KAYA rewards to a specific game or user.
+  /// @param to The address to flush rewards to.
+  function flush(address to) public {
+    uint256 dist = pending(to);
+    prevKayaPerPowers[to] = accKayaPerPower;
     if (dist > 0) {
-      center.reward(game, dist);
+      if (center.isGame(to)) {
+        center.reward(to, dist);
+      } else {
+        kaya.transfer(to, dist);
+      }
     }
   }
 }

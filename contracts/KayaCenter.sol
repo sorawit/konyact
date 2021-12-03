@@ -36,10 +36,11 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   /// @dev Adds a new game to the ecosystem. The game will be able to earn KAYA rewards.
   /// @param name The name of the newly added game.
   /// @param uri The uri of the newly added game.
-  function add(string memory name, string memory uri) external onlyGov {
-    KayaGame game = new KayaGame(name, uri);
-    isGame[address(game)] = true;
-    emit NewGame(address(game), name, uri);
+  function add(string memory name, string memory uri) external onlyGov returns (address) {
+    address game = address(new KayaGame(name, uri));
+    isGame[game] = true;
+    emit NewGame(game, name, uri);
+    return game;
   }
 
   /// @dev Edits the information of an existing game.
