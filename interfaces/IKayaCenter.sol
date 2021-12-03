@@ -6,8 +6,5 @@ import "./IKaya.sol";
 interface IKayaCenter {
   function kaya() external view returns (IKaya);
 
-  function notifyReward(uint256 value) external;
-
-  //   function reward(uint256 value) external;
-  // TODO
+  function reward(address game, uint256 value) external;
 }

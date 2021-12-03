@@ -2,7 +2,5 @@
 pragma solidity 0.8.9;
 
 interface IKayaGame {
-  function reward(uint256 value) external;
-
   function withdraw(address to, uint256 value) external;
 }

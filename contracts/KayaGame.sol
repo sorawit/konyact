@@ -33,13 +33,6 @@ contract KayaGame is IKayaGame {
     }
   }
 
-  /// @dev Adds more KAYA reward to the game. Can technically be called by anyone.
-  /// @param value The size of KAYA tokens to add as rewards.
-  function reward(uint256 value) external {
-    require(kaya.transferFrom(msg.sender, address(this), value));
-    IKayaCenter(controller).notifyReward(value);
-  }
-
   /// @dev Withdraws KAYA tokens to the target address. Must be called by the controller.
   /// @param to The address to send KAYA tokens to.
   /// @param value The size of KAYA tokens to send.
