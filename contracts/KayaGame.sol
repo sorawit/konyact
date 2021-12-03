@@ -1,20 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/token/ERC20/IERC20.sol";
-
+import "../interfaces/IKaya.sol";
 import "../interfaces/IKayaCenter.sol";
 import "../interfaces/IKayaGame.sol";
 
 contract KayaGame is IKayaGame {
-  IERC20 public immutable kaya;
+  IKaya public immutable kaya;
   address public immutable controller;
 
+  string public name;
+  string public uri;
+
   /// @dev Initializes the smart contract with the initial state values.
-  /// @param _kaya The KAYA token smart contract address.
-  constructor(IERC20 _kaya) {
-    kaya = _kaya;
+  constructor(string memory _name, string memory _uri) {
+    kaya = IKaya(IKayaCenter(msg.sender).kaya());
     controller = msg.sender;
+    name = _name;
+    uri = _uri;
+  }
+
+  /// @dev Edits the name and uri of this game contract.
+  /// @param _name The new name to update, or "" if do-not-modify.
+  /// @param _uri The new uri to update, or "" if do-not-modify.
+  function edit(string memory _name, string memory _uri) external {
+    require(msg.sender == controller, "!controller");
+    if (bytes(_name).length > 0) {
+      name = _name;
+    }
+    if (bytes(_uri).length > 0) {
+      uri = _uri;
+    }
   }
 
   /// @dev Adds more KAYA reward to the game. Can technically be called by anyone.
@@ -27,7 +43,7 @@ contract KayaGame is IKayaGame {
   /// @dev Withdraws KAYA tokens to the target address. Must be called by the controller.
   /// @param to The address to send KAYA tokens to.
   /// @param value The size of KAYA tokens to send.
-  function withdrawTo(address to, uint256 value) external {
+  function withdraw(address to, uint256 value) external {
     require(msg.sender == controller, "!controller");
     require(kaya.transfer(to, value), "!transfer");
   }

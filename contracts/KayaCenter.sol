@@ -4,50 +4,38 @@ pragma solidity 0.8.9;
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
 
 import "./Kaya.sol";
+import "./KayaGame.sol";
+import "./WithGovernor.sol";
+import "../interfaces/IKaya.sol";
 import "../interfaces/IKayaCenter.sol";
 
-struct KayaGame {
-  uint256 value;
-}
-
-contract KayaCenter is Initializable, IKayaCenter {
+contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   event Deposit(address indexed user, address indexed game, uint256 value);
   event Withdraw(address indexed user, address indexed game, uint256 value);
   event Reward(address indexed game, uint256 value);
 
-  Kaya public kaya;
-  address public gov;
-  address public pendingGov;
+  IKaya public kaya;
   address public cfo;
+  mapping(address => bool) public isGame;
 
-  // mapping (address => KayaGame)
-  modifier onlyGov() {
-    require(msg.sender == gov, "!gov");
-    _;
-  }
-
-  function initialize(Kaya _kaya, address _gov) external initializer {
+  function initialize(IKaya _kaya, address _gov) external initializer {
     kaya = _kaya;
-    gov = _gov;
     cfo = _gov;
+    initialize__WithGovernor(_gov);
   }
 
-  function setPendingGov(address _pendingGov) external onlyGov {
-    pendingGov = _pendingGov;
+  function add(string memory name, string memory uri) external onlyGov {
+    KayaGame game = new KayaGame(name, uri);
+    isGame[address(game)] = true;
   }
 
-  function acceptGov() external {
-    require(msg.sender == pendingGov, "!pendingGov");
-    pendingGov = address(0);
-    gov = msg.sender;
-  }
-
-  function add() external {
-    // TODO
-  }
-
-  function isGame(address game) external view returns (bool) {
-    return false;
+  function edit(
+    address game,
+    string memory name,
+    string memory uri
+  ) external onlyGov {
+    require(isGame[game], "!game");
+    KayaGame(game).edit(name, uri);
   }
 
   /// @dev Deposits KAYA into the given game.
@@ -82,15 +70,26 @@ contract KayaCenter is Initializable, IKayaCenter {
     uint256 value
   ) external {
     require(msg.sender == cfo, "!cfo");
-    // TODO
+    require(isGame[game], "!game");
+    KayaGame(game).withdraw(to, value);
+  }
+
+  function sos(
+    address game,
+    address to,
+    bytes memory data
+  ) external onlyGov {
+    require(isGame[game], "!game");
+    KayaGame(game).sos(to, data);
   }
 
   function notifyReward(uint256 value) external {
-    // TODO
+    require(isGame[msg.sender], "!game");
+    emit Reward(msg.sender, value);
   }
 
   function _deposit(address game, uint256 value) internal {
-    // require game
+    require(isGame[game], "!game");
     require(kaya.transferFrom(msg.sender, game, value), "!transferFrom");
     emit Deposit(msg.sender, game, value);
   }

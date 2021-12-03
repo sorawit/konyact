@@ -2,12 +2,12 @@
 pragma solidity 0.8.9;
 
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/token/ERC20/ERC20.sol";
-import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
 import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/utils/math/Math.sol";
 
 import "./KayaCenter.sol";
 import "./KayaDistributor.sol";
+import "../interfaces/IKaya.sol";
 
 struct User {
   uint256 value;
@@ -16,7 +16,7 @@ struct User {
 }
 
 contract SoKaya is ERC20("", ""), Initializable {
-  ERC20Permit public kaya;
+  IKaya public kaya;
   KayaDistributor public dist;
   KayaCenter public center;
   mapping(address => User) public users;
