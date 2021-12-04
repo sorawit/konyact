@@ -36,13 +36,18 @@ contract SoKaya is Initializable {
   }
 
   /// @dev Returns the name of soKAYA token.
-  function name() public view returns (string memory) {
+  function name() external view returns (string memory) {
     return "Super Owner of KAYA";
   }
 
   /// @dev Returns the symbol of soKAYA token.
-  function symbol() public view returns (string memory) {
+  function symbol() external view returns (string memory) {
     return "soKAYA";
+  }
+
+  /// @dev Returns the decimals of soKAYA token.
+  function decimals() external view returns (uint8) {
+    return 18;
   }
 
   /// @dev Locks KAYA tokens to earn soKAYA tokens. Newly earned tokens must be delegated.

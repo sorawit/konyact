@@ -12,13 +12,15 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   event SetCfo(address indexed cfo);
   event NewGame(address indexed game, string name, string uri);
   event EditGame(address indexed game, string name, string uri);
-  event Deposit(address indexed game, address indexed user, uint256 value);
+  event Deposit(address indexed game, address indexed user, uint256 value, string memo);
   event Withdraw(address indexed game, address indexed user, uint256 value);
   event Reward(address indexed game, uint256 value);
 
   IKaya public kaya;
   address public cfo;
+
   mapping(address => bool) public isGame;
+  address[] public games;
 
   function initialize(IKaya _kaya, address _gov) external initializer {
     kaya = _kaya;
@@ -33,12 +35,18 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
     emit SetCfo(_cfo);
   }
 
+  /// @dev Returns the total number of games in the system.
+  function gameLength() external view returns (uint256) {
+    return games.length;
+  }
+
   /// @dev Adds a new game to the ecosystem. The game will be able to earn KAYA rewards.
   /// @param name The name of the newly added game.
   /// @param uri The uri of the newly added game.
   function add(string memory name, string memory uri) external onlyGov returns (address) {
     address game = address(new KayaGame(name, uri));
     isGame[game] = true;
+    games.push(game);
     emit NewGame(game, name, uri);
     return game;
   }
@@ -60,13 +68,19 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   /// @dev Deposits KAYA into the given game.
   /// @param game The address of the game custody smart contract.
   /// @param value The value of KAYA token to deposit.
-  function deposit(address game, uint256 value) external {
-    _deposit(game, value);
+  /// @param memo Extra data for deposit.
+  function deposit(
+    address game,
+    uint256 value,
+    string memory memo
+  ) external {
+    _deposit(game, value, memo);
   }
 
   /// @dev Deposits KAYA into the given game using EIP-2612 permit to permit for max int.
   /// @param game The address of the game custody smart contract.
   /// @param value The value of KAYA token to deposit.
+  /// @param memo Extra data for deposit.
   /// @param deadline The deadline for EIP-2616 permit parameter.
   /// @param v Part of permit signature.
   /// @param r Part of permit signature.
@@ -74,22 +88,27 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   function depositWithPermit(
     address game,
     uint256 value,
+    string memory memo,
     uint256 deadline,
     uint8 v,
     bytes32 r,
     bytes32 s
   ) external {
     kaya.permit(msg.sender, address(this), type(uint256).max, deadline, v, r, s);
-    _deposit(game, value);
+    _deposit(game, value, memo);
   }
 
   /// @dev Internal function to process KAYA deposits to games.
   /// @param game The game address to deposit KAYA to.
   /// @param value The size of KAYA to deposit.
-  function _deposit(address game, uint256 value) internal {
+  function _deposit(
+    address game,
+    uint256 value,
+    string memory memo
+  ) internal {
     require(isGame[game], "!game");
     require(kaya.transferFrom(msg.sender, game, value), "!transferFrom");
-    emit Deposit(game, msg.sender, value);
+    emit Deposit(game, msg.sender, value, memo);
   }
 
   /// @dev TODO
