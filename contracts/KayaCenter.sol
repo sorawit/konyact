@@ -24,10 +24,17 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   mapping(address => bool) public isGame;
   address[] public games;
 
-  function initialize(IKaya _kaya, address _gov) external initializer {
+  function initialize(
+    IKaya _kaya,
+    address _gov,
+    uint16 _kayaFee
+  ) external initializer {
     kaya = _kaya;
     cfo = _gov;
+    kayaFee = _kayaFee;
     initialize__WithGovernor(_gov);
+    emit SetCfo(_gov);
+    emit SetKayaFee(_kayaFee);
   }
 
   /// @dev Sets the address that is authorized to initiate withdrawal from any games.
