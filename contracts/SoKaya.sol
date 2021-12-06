@@ -128,7 +128,7 @@ contract SoKaya is Initializable {
   function toLockTime(uint8 commitment) public pure returns (uint256) {
     if (commitment == 0) return 7 days;
     if (commitment == 1) return 30 days;
-    if (commitment == 2) return 182 days;
+    if (commitment == 2) return 180 days;
     if (commitment == 3) return 365 days;
     if (commitment == 4) return 730 days;
     if (commitment == 5) return 1461 days;

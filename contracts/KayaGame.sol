@@ -11,19 +11,30 @@ contract KayaGame is IKayaGame {
 
   string public name;
   string public uri;
+  uint16 public baseFee; // base exchange fee for GM in bps
 
   /// @dev Initializes the smart contract with the initial state values.
-  constructor(string memory _name, string memory _uri) {
+  constructor(
+    string memory _name,
+    string memory _uri,
+    uint16 _baseFee
+  ) {
     kaya = IKaya(IKayaCenter(msg.sender).kaya());
     controller = msg.sender;
     name = _name;
     uri = _uri;
+    baseFee = _baseFee;
   }
 
   /// @dev Edits the name and uri of this game contract.
   /// @param _name The new name to update, or "" if do-not-modify.
   /// @param _uri The new uri to update, or "" if do-not-modify.
-  function edit(string memory _name, string memory _uri) external {
+  /// @param _baseFee The new exchange fee bps to update.
+  function edit(
+    string memory _name,
+    string memory _uri,
+    uint16 _baseFee
+  ) external {
     require(msg.sender == controller, "!controller");
     if (bytes(_name).length > 0) {
       name = _name;
@@ -31,6 +42,7 @@ contract KayaGame is IKayaGame {
     if (bytes(_uri).length > 0) {
       uri = _uri;
     }
+    baseFee = _baseFee;
   }
 
   /// @dev Withdraws KAYA tokens to the target address. Must be called by the controller.

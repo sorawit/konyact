@@ -9,15 +9,17 @@ import "../interfaces/IKaya.sol";
 import "../interfaces/IKayaCenter.sol";
 
 contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
-  event SetCfo(address indexed cfo);
-  event NewGame(address indexed game, string name, string uri);
-  event EditGame(address indexed game, string name, string uri);
+  event SetCfo(address cfo);
+  event SetKayaFee(uint16 kayaFee);
+  event NewGame(address indexed game, string name, string uri, uint16 baseFee);
+  event EditGame(address indexed game, string name, string uri, uint16 baseFee);
   event Deposit(address indexed game, address indexed user, uint256 value, string memo);
   event Withdraw(address indexed game, address indexed user, uint256 value);
   event Reward(address indexed game, uint256 value);
 
   IKaya public kaya;
   address public cfo;
+  uint16 public kayaFee;
 
   mapping(address => bool) public isGame;
   address[] public games;
@@ -35,6 +37,13 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
     emit SetCfo(_cfo);
   }
 
+  /// @dev Sets the global trading fee for KAYA ecosystem that applies to all games.
+  /// @param _kayaFee The bps value to become new kaya fee.
+  function setKayaFee(uint16 _kayaFee) external onlyGov {
+    kayaFee = _kayaFee;
+    emit SetKayaFee(_kayaFee);
+  }
+
   /// @dev Returns the total number of games in the system.
   function gameLength() external view returns (uint256) {
     return games.length;
@@ -43,11 +52,16 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   /// @dev Adds a new game to the ecosystem. The game will be able to earn KAYA rewards.
   /// @param name The name of the newly added game.
   /// @param uri The uri of the newly added game.
-  function add(string memory name, string memory uri) external onlyGov returns (address) {
-    address game = address(new KayaGame(name, uri));
+  /// @param baseFee The base trading fee bps of the newly added game.
+  function add(
+    string memory name,
+    string memory uri,
+    uint16 baseFee
+  ) external onlyGov returns (address) {
+    address game = address(new KayaGame(name, uri, baseFee));
     isGame[game] = true;
     games.push(game);
-    emit NewGame(game, name, uri);
+    emit NewGame(game, name, uri, baseFee);
     return game;
   }
 
@@ -55,14 +69,16 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   /// @param game The address of the game contract to edit.
   /// @param name The name to edit to.
   /// @param uri The uri to edit to.
+  /// @param baseFee The base fee to edit to.
   function edit(
     address game,
     string memory name,
-    string memory uri
+    string memory uri,
+    uint16 baseFee
   ) external onlyGov {
     require(isGame[game], "!game");
-    KayaGame(game).edit(name, uri);
-    emit EditGame(address(game), name, uri);
+    KayaGame(game).edit(name, uri, baseFee);
+    emit EditGame(address(game), name, uri, baseFee);
   }
 
   /// @dev Deposits KAYA into the given game.
