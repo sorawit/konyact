@@ -82,7 +82,7 @@ contract SoKaya is Initializable, WithGovernor {
   /// @dev Update inflation parameters.
   /// @param _gameInflation The new game inflation value.
   /// @param _gameInflation The new user inflation value.
-  function setInflation(uint _gameInflation, uint _userInflation) external onlyGov {
+  function setInflation(uint _gameInflation, uint _userInflation) external withTick onlyGov {
     distGame.inflation = _gameInflation;
     distUser.inflation = _userInflation;
     emit SetInflation(_gameInflation, _userInflation);
