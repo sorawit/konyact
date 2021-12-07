@@ -27,10 +27,11 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   function initialize(
     IKaya _kaya,
     address _gov,
+    address _cfo,
     uint16 _kayaFee
   ) external initializer {
     kaya = _kaya;
-    cfo = _gov;
+    cfo = _cfo;
     kayaFee = _kayaFee;
     initialize__WithGovernor(_gov);
     emit SetCfo(_gov);
