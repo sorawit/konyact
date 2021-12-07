@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
+import 'OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol';
 
 contract WithGovernor is Initializable {
   address public gov;
@@ -11,12 +11,12 @@ contract WithGovernor is Initializable {
   event SetPendingGov(address gov);
 
   modifier onlyGov() {
-    require(msg.sender == gov, "!gov");
+    require(msg.sender == gov, '!gov');
     _;
   }
 
   function initialize__WithGovernor(address _gov) internal initializer {
-    require(_gov != address(0), "!gov");
+    require(_gov != address(0), '!gov');
     gov = _gov;
     emit AcceptGov(_gov);
   }
@@ -30,7 +30,7 @@ contract WithGovernor is Initializable {
 
   /// @dev Called by the pending governor to become the governor.
   function acceptGov() external {
-    require(msg.sender == pendingGov, "!pendingGov");
+    require(msg.sender == pendingGov, '!pendingGov');
     pendingGov = address(0);
     gov = msg.sender;
     emit AcceptGov(msg.sender);

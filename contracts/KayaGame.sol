@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../interfaces/IKaya.sol";
-import "../interfaces/IKayaCenter.sol";
-import "../interfaces/IKayaGame.sol";
+import '../interfaces/IKaya.sol';
+import '../interfaces/IKayaCenter.sol';
 
-contract KayaGame is IKayaGame {
+contract KayaGame {
   IKaya public immutable kaya;
   address public immutable controller;
 
@@ -35,7 +34,7 @@ contract KayaGame is IKayaGame {
     string memory _uri,
     uint16 _baseFee
   ) external {
-    require(msg.sender == controller, "!controller");
+    require(msg.sender == controller, '!controller');
     if (bytes(_name).length > 0) {
       name = _name;
     }
@@ -48,9 +47,9 @@ contract KayaGame is IKayaGame {
   /// @dev Withdraws KAYA tokens to the target address. Must be called by the controller.
   /// @param to The address to send KAYA tokens to.
   /// @param value The size of KAYA tokens to send.
-  function withdraw(address to, uint256 value) external {
-    require(msg.sender == controller, "!controller");
-    require(kaya.transfer(to, value), "!transfer");
+  function withdraw(address to, uint value) external {
+    require(msg.sender == controller, '!controller');
+    require(kaya.transfer(to, value), '!transfer');
   }
 
   /// @dev Called by controller to ask this contract to any action. Primarily for recovering
@@ -59,8 +58,8 @@ contract KayaGame is IKayaGame {
   /// @param to The contract address to execute the acton.
   /// @param data The data attached the call.
   function sos(address to, bytes memory data) external payable {
-    require(msg.sender == controller, "!controller");
-    (bool ok, ) = to.call{ value: msg.value }(data);
-    require(ok, "!ok");
+    require(msg.sender == controller, '!controller');
+    (bool ok, ) = to.call{value: msg.value}(data);
+    require(ok, '!ok');
   }
 }

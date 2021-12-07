@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol";
+import 'OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initializable.sol';
 
-import "./KayaGame.sol";
-import "./WithGovernor.sol";
-import "../interfaces/IKaya.sol";
-import "../interfaces/IKayaCenter.sol";
+import './KayaGame.sol';
+import './WithGovernor.sol';
+import '../interfaces/IKaya.sol';
+import '../interfaces/IKayaCenter.sol';
 
 contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   event SetCfo(address cfo);
   event SetKayaFee(uint16 kayaFee);
   event NewGame(address indexed game, string name, string uri, uint16 baseFee);
   event EditGame(address indexed game, string name, string uri, uint16 baseFee);
-  event Deposit(address indexed game, address indexed user, uint256 value, string memo);
-  event Withdraw(address indexed game, address indexed user, uint256 value);
-  event Reward(address indexed game, uint256 value);
+  event Deposit(address indexed game, address indexed user, uint value, string memo);
+  event Withdraw(address indexed game, address indexed user, uint value);
+  event Reward(address indexed game, uint value);
 
   IKaya public kaya;
   address public cfo;
@@ -53,7 +53,7 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   }
 
   /// @dev Returns the total number of games in the system.
-  function gameLength() external view returns (uint256) {
+  function gameLength() external view returns (uint) {
     return games.length;
   }
 
@@ -84,7 +84,7 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
     string memory uri,
     uint16 baseFee
   ) external onlyGov {
-    require(isGame[game], "!game");
+    require(isGame[game], '!game');
     KayaGame(game).edit(name, uri, baseFee);
     emit EditGame(address(game), name, uri, baseFee);
   }
@@ -95,7 +95,7 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   /// @param memo Extra data for deposit.
   function deposit(
     address game,
-    uint256 value,
+    uint value,
     string memory memo
   ) external {
     _deposit(game, value, memo);
@@ -111,14 +111,14 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   /// @param s Part of permit signature.
   function depositWithPermit(
     address game,
-    uint256 value,
+    uint value,
     string memory memo,
-    uint256 deadline,
+    uint deadline,
     uint8 v,
     bytes32 r,
     bytes32 s
   ) external {
-    kaya.permit(msg.sender, address(this), type(uint256).max, deadline, v, r, s);
+    kaya.permit(msg.sender, address(this), type(uint).max, deadline, v, r, s);
     _deposit(game, value, memo);
   }
 
@@ -127,11 +127,11 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   /// @param value The size of KAYA to deposit.
   function _deposit(
     address game,
-    uint256 value,
+    uint value,
     string memory memo
   ) internal {
-    require(isGame[game], "!game");
-    require(kaya.transferFrom(msg.sender, game, value), "!transferFrom");
+    require(isGame[game], '!game');
+    require(kaya.transferFrom(msg.sender, game, value), '!transferFrom');
     emit Deposit(game, msg.sender, value, memo);
   }
 
@@ -142,10 +142,10 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   function withdraw(
     address game,
     address to,
-    uint256 value
+    uint value
   ) external {
-    require(msg.sender == cfo, "!cfo");
-    require(isGame[game], "!game");
+    require(msg.sender == cfo, '!cfo');
+    require(isGame[game], '!game');
     KayaGame(game).withdraw(to, value);
     emit Withdraw(game, to, value);
   }
@@ -153,8 +153,8 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
   /// @dev Adds more KAYA reward to the game. Can technically be called by anyone.
   /// @param game The game contract to reward.
   /// @param value The size of KAYA tokens to add as rewards.
-  function reward(address game, uint256 value) external {
-    require(isGame[game], "!game");
+  function reward(address game, uint value) external {
+    require(isGame[game], '!game');
     require(kaya.transferFrom(msg.sender, game, value));
     emit Reward(game, value);
   }
@@ -168,7 +168,7 @@ contract KayaCenter is Initializable, WithGovernor, IKayaCenter {
     address to,
     bytes memory data
   ) external onlyGov {
-    require(isGame[game], "!game");
+    require(isGame[game], '!game');
     KayaGame(game).sos(to, data);
   }
 }
