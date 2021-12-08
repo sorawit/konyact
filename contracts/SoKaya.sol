@@ -5,6 +5,7 @@ import 'OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/proxy/utils/Initiali
 import 'OpenZeppelin/openzeppelin-contracts@4.4.0/contracts/utils/math/Math.sol';
 
 import './KayaCenter.sol';
+import './KayaReserve.sol';
 import './WithGovernor.sol';
 import '../interfaces/IKaya.sol';
 
@@ -25,6 +26,7 @@ contract SoKaya is Initializable, WithGovernor {
 
   IKaya public kaya;
   KayaCenter public center;
+  KayaReserve public reserve;
 
   Distribution public distGame;
   Distribution public distUser;
@@ -55,7 +57,7 @@ contract SoKaya is Initializable, WithGovernor {
   ) external initializer {
     center = _center;
     kaya = _center.kaya();
-    kaya.approve(address(center), type(uint).max);
+    reserve = new KayaReserve(_center);
     distGame.inflation = _gameInflation;
     distUser.inflation = _userInflation;
     emit SetInflation(_gameInflation, _userInflation);
@@ -130,7 +132,7 @@ contract SoKaya is Initializable, WithGovernor {
       require(game == address(0) || game == user.game, '!game');
     }
     user.value += value;
-    user.until += Math.max(user.until, block.timestamp + toLockTime(commitment));
+    user.until = Math.max(user.until, block.timestamp + toLockTime(commitment));
     uint morePower = toLockMultiplier(commitment) * value;
     _flushGame(user.game);
     _flushUser(msg.sender);
@@ -153,6 +155,7 @@ contract SoKaya is Initializable, WithGovernor {
     _flushUser(msg.sender);
     distGame.powers[user.game] -= lessPower;
     distUser.powers[msg.sender] -= lessPower;
+    require(kaya.transfer(msg.sender, value));
     emit Unlock(msg.sender, value, lessPower);
   }
 
@@ -174,8 +177,8 @@ contract SoKaya is Initializable, WithGovernor {
   function claim() external withTick {
     _flushUser(msg.sender);
     uint value = users[msg.sender].claimable;
-    require(kaya.transfer(msg.sender, value));
     users[msg.sender].claimable -= value;
+    reserve.send(msg.sender, value);
     emit Claim(msg.sender, value);
   }
 
@@ -195,7 +198,7 @@ contract SoKaya is Initializable, WithGovernor {
     uint kayaGame = (distGame.inflation * supply * timePast) / 1e18 / 365 days;
     uint kayaUser = (distUser.inflation * supply * timePast) / 1e18 / 365 days;
     if (kayaGame + kayaUser == 0) return;
-    kaya.mint(address(this), kayaGame + kayaUser);
+    kaya.mint(address(reserve), kayaGame + kayaUser);
     distGame.nowKayaPerPower += (kayaGame * 1e12) / totalPower;
     distUser.nowKayaPerPower += (kayaUser * 1e12) / totalPower;
   }
@@ -205,7 +208,7 @@ contract SoKaya is Initializable, WithGovernor {
   }
 
   function _flushGame(address game) internal {
-    center.reward(game, _flush(distGame, game));
+    reserve.reward(game, _flush(distGame, game));
   }
 
   function _flush(Distribution storage dist, address who) internal returns (uint) {
