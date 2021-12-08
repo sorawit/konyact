@@ -32,7 +32,7 @@ contract SoKaya is Initializable, WithGovernor {
   uint public totalPower;
   uint public lastTick;
 
-  mapping(address => User) users;
+  mapping(address => User) public users;
 
   event Lock(address indexed user, uint value, uint8 commitment, uint morePower);
   event Unlock(address indexed user, uint value, uint lessPower);
