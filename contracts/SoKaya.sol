@@ -55,6 +55,7 @@ contract SoKaya is Initializable, WithGovernor {
   ) external initializer {
     center = _center;
     kaya = _center.kaya();
+    kaya.approve(address(center), type(uint).max);
     distGame.inflation = _gameInflation;
     distUser.inflation = _userInflation;
     emit SetInflation(_gameInflation, _userInflation);
