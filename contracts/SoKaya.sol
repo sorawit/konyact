@@ -164,6 +164,7 @@ contract SoKaya is Initializable, WithGovernor {
   function vote(address game) external withTick {
     require(game != address(0) && center.isGame(game), '!game');
     User storage user = users[msg.sender];
+    require(user.game != address(0), '!stake');
     uint power = distUser.powers[msg.sender];
     _flushGame(user.game);
     _flushGame(game);
